@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2d5016">
+<title>Microgreens Tracker</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#f0f4e8 0%,#e8f0e0 50%,#f5f0e8 100%);min-height:100vh;min-height:100dvh;max-width:480px;margin:0 auto;padding-bottom:80px;color:#333}
+.header{background:linear-gradient(135deg,#2d5016 0%,#3a6b1e 100%);padding:20px 20px 16px;color:#fff;position:sticky;top:0;z-index:50}
+.header h1{font-family:'DM Serif Display',serif;font-weight:400;font-size:22px;letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+.header-sub{font-size:12px;opacity:.8;margin-left:34px;margin-top:4px}
+.header-actions{position:absolute;top:20px;right:16px;display:flex;gap:8px}
+.header-actions button{background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.content{padding:12px 16px}
+.card{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.04);border:1px solid #e8e8e0}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid #e0e0d0;display:flex;z-index:100;box-shadow:0 -2px 12px rgba(0,0,0,.06);padding-bottom:env(safe-area-inset-bottom,0)}
+.nav-btn{flex:1;padding:10px 4px 12px;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:#999;font-weight:400;font-size:10px;cursor:pointer;font-family:inherit;transition:color .2s}
+.nav-btn.active{color:#2d5016;font-weight:600}
+.nav-btn svg{width:18px;height:18px}
+.btn-primary{padding:12px 16px;background:#2d5016;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-secondary{padding:12px 16px;background:#f5f5f0;color:#333;border:1px solid #ddd;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-sm{padding:8px 14px;font-size:13px}
+.btn-primary:active{opacity:.85}.btn-secondary:active{background:#eee}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center;z-index:200;padding:16px}
+.modal-content{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:448px;max-height:80vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-family:'DM Serif Display',serif;font-weight:400;font-size:20px;margin-bottom:16px}
+.input-field{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none}
+.input-field:focus{border-color:#2d5016}
+.input-label{font-size:12px;font-weight:600;color:#666;display:block;margin-bottom:4px}
+.section-label{font-size:12px;font-weight:600;color:#999;margin:16px 0 8px;text-transform:uppercase;letter-spacing:1px}
+h2.tab-title{margin:0 0 12px;font-size:18px;font-family:'DM Serif Display',serif;font-weight:400}
+.empty-state{text-align:center;padding:40px;color:#999}
+.empty-state .icon{font-size:32px;margin-bottom:8px}
+
+/* Stepper */
+.stepper{display:flex;align-items:center;gap:0;background:#f5f5f0;border-radius:8px;overflow:hidden;border:1px solid #e0e0d0}
+.stepper button{width:36px;height:36px;border:none;background:none;font-size:18px;font-weight:600;cursor:pointer;color:#2d5016;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.stepper button:active{background:#e8e8e0}
+.stepper .count{width:32px;text-align:center;font-size:15px;font-weight:700;color:#333;background:#fff}
+
+/* Queue arrow button */
+.queue-btn{width:40px;height:40px;border-radius:10px;border:none;background:#e8f5e9;color:#2d5016;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.queue-btn:active{background:#c8e6c9;transform:scale(.95)}
+.queue-btn.queued{background:#2d5016;color:#fff}
+
+/* Check button */
+.check-btn{width:36px;height:36px;border-radius:10px;border:2px solid #ccc;background:#fff;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.check-btn.checked{border:none;background:#2d5016}
+
+/* Progress */
+.progress-ring{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.progress-ring-inner{width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#2d5016}
+
+.bar-track{height:8px;background:#f0f0e8;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .3s}
+
+/* Sync */
+.sync-bar{height:3px;background:#e8e8e0;position:fixed;top:0;left:0;right:0;z-index:999;max-width:480px;margin:0 auto}
+.sync-bar.active{background:linear-gradient(90deg,#2d5016,#6aaf35,#2d5016);background-size:200%;animation:syncPulse 1.5s infinite}
+@keyframes syncPulse{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+.loading-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:linear-gradient(135deg,#f0f4e8 0%,#e8f0e0 50%,#f5f0e8 100%)}
+.loading-spinner{font-size:40px;animation:spin 2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.setup-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#f0f4e8 0%,#e8f0e0 50%,#f5f0e8 100%);text-align:center}
+.setup-screen h2{font-family:'DM Serif Display',serif;font-weight:400;font-size:24px;margin-bottom:8px}
+.setup-screen p{color:#666;font-size:14px;margin-bottom:20px;max-width:340px}
+.setup-input{width:100%;max-width:400px;padding:14px 16px;border:2px solid #ddd;border-radius:12px;font-size:14px;font-family:inherit;outline:none;text-align:center;margin-bottom:12px}
+.setup-input:focus{border-color:#2d5016}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:300;animation:fadeInOut 2.5s ease;max-width:400px}
+.toast.error{background:#c62828}
+@keyframes fadeInOut{0%{opacity:0;transform:translateX(-50%) translateY(-10px)}10%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}
+
+/* Badge */
+.box-badge{display:inline-flex;align-items:center;justify-content:center;background:#e8f5e9;color:#2d5016;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="sync-bar" id="syncBar"></div>
+<div id="app"></div>
+<div id="modalContainer"></div>
+<div id="toastContainer"></div>
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const DC=4,BASE_PRICE=600;
+const TABS=["Harvest","Deliveries","Customers","Payments","History"];
+const NI={
+Harvest:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>`,
+Deliveries:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,
+Customers:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
+Payments:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
+History:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`};
+
+let API_URL=localStorage.getItem("mg-api-url")||"";
+let S={tab:"Harvest",customers:[],ws:{date:td(),harvestQueue:{},deliveryQueue:{}},history:[]};
+
+function td(){return new Date().toISOString().split("T")[0]}
+function gid(){return Math.random().toString(36).substr(2,9)}
+function fd(d){if(!d)return"";return new Date(d).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}
+
+// ═══════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════
+async function api(action,params={}){
+  document.getElementById("syncBar").className="sync-bar active";
+  try{
+    const u=new URL(API_URL);u.searchParams.set("action",action);
+    Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,typeof v==="object"?JSON.stringify(v):v));
+    const r=await fetch(u.toString());if(!r.ok)throw new Error("Network error");
+    const d=await r.json();if(d.error)throw new Error(d.error);return d;
+  }catch(e){toast("Sync failed: "+e.message,true);throw e;}
+  finally{document.getElementById("syncBar").className="sync-bar"}
+}
+function toast(m,err=false){const c=document.getElementById("toastContainer");c.innerHTML=`<div class="toast ${err?'error':''}">${m}</div>`;setTimeout(()=>c.innerHTML="",2600)}
+
+// ═══════════════════════════════════════════════
+// DATA OPS
+// ═══════════════════════════════════════════════
+async function loadAll(){
+  const d=await api("getAll");
+  S.customers=d.customers||[];
+  S.ws=d.weekState||{date:td(),harvestQueue:{},deliveryQueue:{}};
+  S.history=d.history||[];
+  render();
+}
+
+async function addCust(c){
+  const n={id:gid(),name:c.name,phone:c.phone||"",area:c.area||"",defaultBoxes:c.defaultBoxes||1,deliveriesInCycle:0,totalDeliveries:0,active:true,createdAt:new Date().toISOString(),payments:[]};
+  S.customers.push(n);render();await api("addCustomer",{data:n});
+}
+async function editCust(u){
+  S.customers=S.customers.map(c=>c.id===u.id?{...c,...u}:c);render();
+  await api("updateCustomer",{data:S.customers.find(c=>c.id===u.id)});
+}
+async function delCust(id){S.customers=S.customers.filter(c=>c.id!==id);render();await api("deleteCustomer",{id})}
+async function togActive(id){const c=S.customers.find(x=>x.id===id);if(!c)return;c.active=!c.active;render();await api("updateCustomer",{data:c})}
+
+// Harvest queue: set box count for a customer
+async function setHarvestBoxes(id,count){
+  if(count<=0){delete S.ws.harvestQueue[id];}
+  else{S.ws.harvestQueue[id]=count;}
+  render();await api("updateWeekState",{data:S.ws});
+}
+
+// Move from harvest to delivery queue
+async function queueForDelivery(id){
+  const boxes=S.ws.harvestQueue[id]||1;
+  S.ws.deliveryQueue[id]={boxes,delivered:false};
+  delete S.ws.harvestQueue[id];
+  render();await api("updateWeekState",{data:S.ws});
+}
+
+// Remove from delivery queue back to harvest
+async function unqueueDelivery(id){
+  const entry=S.ws.deliveryQueue[id];
+  if(entry){S.ws.harvestQueue[id]=entry.boxes;}
+  delete S.ws.deliveryQueue[id];
+  render();await api("updateWeekState",{data:S.ws});
+}
+
+// Mark delivered
+async function togDelivered(id){
+  if(!S.ws.deliveryQueue[id])return;
+  S.ws.deliveryQueue[id].delivered=!S.ws.deliveryQueue[id].delivered;
+  render();await api("updateWeekState",{data:S.ws});
+}
+
+async function updDate(d){S.ws.date=d;await api("updateWeekState",{data:S.ws})}
+
+async function doComplete(){
+  const r=await api("completeWeek",{data:{deliveryQueue:S.ws.deliveryQueue,date:S.ws.date}});
+  await loadAll();closeModal();
+  if(r.cycleCompleted&&r.cycleCompleted.length>0){
+    const names=r.cycleCompleted.map(id=>r.customerNames[id]||"?").join(", ");
+    setTimeout(()=>showConfirm("Cycles Completed! 💰",`${names} completed their cycle. Record payment in Payments tab.`,()=>{S.tab="Payments";render();},"Go to Payments"),200);
+  }
+}
+
+async function recPay(id){
+  const c=S.customers.find(x=>x.id===id);if(!c)return;
+  if(!c.payments)c.payments=[];
+  const amt=(c.defaultBoxes||1)*BASE_PRICE;
+  c.payments.push({date:new Date().toISOString(),amount:amt,boxes:c.defaultBoxes||1});
+  render();await api("recordPayment",{id});
+}
+
+function ac(){return S.customers.filter(c=>c.active)}
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function render(){
+  const a=ac();
+  const delQ=Object.keys(S.ws.deliveryQueue).length;
+  const harvQ=Object.keys(S.ws.harvestQueue).length;
+  const totalBoxes=Object.values(S.ws.deliveryQueue).reduce((s,v)=>s+v.boxes,0)+Object.values(S.ws.harvestQueue).reduce((s,v)=>s+v,0);
+  
+  document.getElementById("app").innerHTML=`
+    <div class="header">
+      <h1><span>🌱</span> Microgreens Tracker</h1>
+      <div class="header-sub">${a.length} subscribers · ${totalBoxes} boxes this week</div>
+      <div class="header-actions"><button onclick="loadAll()" title="Refresh">🔄</button><button onclick="showSetup()" title="Settings">⚙️</button></div>
+    </div>
+    <div class="content">${renderTab()}</div>
+    <div class="bottom-nav">${TABS.map(t=>{
+      let badge="";
+      if(t==="Deliveries"&&delQ>0)badge=`<span style="position:absolute;top:4px;right:50%;transform:translateX(calc(50% + 12px));background:#e65100;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px">${delQ}</span>`;
+      if(t==="Harvest"&&harvQ>0)badge=`<span style="position:absolute;top:4px;right:50%;transform:translateX(calc(50% + 12px));background:#2d5016;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px">${harvQ}</span>`;
+      return`<button class="nav-btn ${S.tab===t?'active':''}" data-tab="${t}" style="position:relative">${NI[t]}${t}${badge}</button>`;
+    }).join("")}</div>`;
+  bindEvents();
+}
+
+function renderTab(){switch(S.tab){case"Harvest":return rHarv();case"Deliveries":return rDel();case"Customers":return rCust();case"Payments":return rPay();case"History":return rHist()}}
+
+// ─── HARVEST TAB ───
+function rHarv(){
+  const a=ac();
+  const inDelivery=Object.keys(S.ws.deliveryQueue);
+  // Show customers NOT yet in delivery queue
+  const available=a.filter(c=>!inDelivery.includes(c.id));
+  const queued=Object.entries(S.ws.harvestQueue);
+  const totalBoxesHarvest=queued.reduce((s,[,b])=>s+b,0);
+  const totalBoxesDelivery=Object.values(S.ws.deliveryQueue).reduce((s,v)=>s+v.boxes,0);
+  
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <h2 class="tab-title">Harvest</h2>
+    <input type="date" value="${S.ws.date}" id="weekDate" style="border:1px solid #ddd;border-radius:8px;padding:6px 10px;font-size:13px;font-family:inherit;color:#333;background:#fff">
+  </div>`;
+  
+  // Summary card
+  h+=`<div class="card" style="display:flex;gap:16px;text-align:center">
+    <div style="flex:1"><div style="font-size:24px;font-weight:700;color:#2d5016;font-family:'DM Serif Display',serif">${totalBoxesHarvest+totalBoxesDelivery}</div><div style="font-size:11px;color:#888">Total boxes</div></div>
+    <div style="width:1px;background:#e8e8e0"></div>
+    <div style="flex:1"><div style="font-size:24px;font-weight:700;color:#f57c00;font-family:'DM Serif Display',serif">${totalBoxesHarvest}</div><div style="font-size:11px;color:#888">To harvest</div></div>
+    <div style="width:1px;background:#e8e8e0"></div>
+    <div style="flex:1"><div style="font-size:24px;font-weight:700;color:#2e7d32;font-family:'DM Serif Display',serif">${totalBoxesDelivery}</div><div style="font-size:11px;color:#888">Ready</div></div>
+  </div>`;
+  
+  // Customers to set up
+  if(available.length>0){
+    h+=`<div class="section-label">Set boxes & queue for delivery</div>`;
+    available.forEach(c=>{
+      const boxes=S.ws.harvestQueue[c.id]||0;
+      const isSet=boxes>0;
+      h+=`<div class="card" style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600">${c.name}</div>
+          <div style="font-size:11px;color:#999">${c.area?c.area+' · ':''}Usually ${c.defaultBoxes||1} box${(c.defaultBoxes||1)>1?'es':''} · ${c.deliveriesInCycle}/${DC} in cycle</div>
+        </div>
+        <div class="stepper">
+          <button data-hminus="${c.id}">−</button>
+          <div class="count">${boxes}</div>
+          <button data-hplus="${c.id}">+</button>
+        </div>
+        <button class="queue-btn" data-queue="${c.id}" style="${isSet?'':'opacity:.3;pointer-events:none'}">→</button>
+      </div>`;
+    });
+    
+    // Quick fill button
+    const unfilled=available.filter(c=>!S.ws.harvestQueue[c.id]);
+    if(unfilled.length>0){
+      h+=`<button class="btn-secondary" style="width:100%;margin-top:4px;font-size:13px" id="fillDefaultsBtn">Fill all with default quantities</button>`;
+    }
+  }
+  
+  // Already in delivery queue
+  if(inDelivery.length>0){
+    h+=`<div class="section-label" style="color:#2e7d32">Queued for delivery (${inDelivery.length})</div>`;
+    inDelivery.forEach(id=>{
+      const c=S.customers.find(x=>x.id===id);if(!c)return;
+      const entry=S.ws.deliveryQueue[id];
+      h+=`<div class="card" style="display:flex;align-items:center;gap:10px;opacity:.6">
+        <div style="flex:1"><div style="font-size:15px;font-weight:600">${c.name} <span class="box-badge">${entry.boxes} box${entry.boxes>1?'es':''}</span></div></div>
+        <button style="padding:6px 10px;background:#fff3e0;border:1px solid #ffe0b2;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;color:#e65100;font-weight:500" data-unqueue="${id}">&larr; Back</button>
+      </div>`;
+    });
+  }
+  
+  if(a.length===0)h+=`<div class="empty-state"><div class="icon">🌱</div><div>Add customers first!</div></div>`;
+  return h;
+}
+
+// ─── DELIVERIES TAB ───
+function rDel(){
+  const entries=Object.entries(S.ws.deliveryQueue);
+  const pending=entries.filter(([,v])=>!v.delivered);
+  const done=entries.filter(([,v])=>v.delivered);
+  const dc=done.length,total=entries.length;
+  const pct=total>0?(dc/total)*360:0;
+  const allDone=total>0&&dc===total;
+  
+  let h=`<h2 class="tab-title">Deliveries</h2>`;
+  
+  if(total===0){
+    h+=`<div class="empty-state"><div class="icon">📦</div><div>No deliveries queued yet.<br>Go to Harvest to queue customers.</div></div>`;
+    return h;
+  }
+  
+  // Progress
+  h+=`<div class="card" style="display:flex;align-items:center;gap:14px">
+    <div class="progress-ring" style="background:conic-gradient(#2d5016 ${pct}deg,#e8e8e0 0deg)"><div class="progress-ring-inner">${dc}/${total}</div></div>
+    <div style="flex:1"><div style="font-size:14px;font-weight:600">${dc===0?'Ready to deliver':allDone?'All delivered! 🎉':'Delivering...'}</div>
+    <div style="font-size:12px;color:#888">${pending.length} remaining</div></div>
+    ${dc>0?`<button class="btn-primary btn-sm" style="${allDone?'':'background:#f5f5f0;color:#666;'}" id="cwBtn">Complete Week</button>`:''}
+  </div>`;
+  
+  // Pending
+  if(pending.length>0){
+    pending.forEach(([id,entry])=>{
+      const c=S.customers.find(x=>x.id===id);if(!c)return;
+      const cp=c.deliveriesInCycle;
+      h+=`<div class="card" style="display:flex;align-items:center;gap:12px">
+        <button class="check-btn" data-deliver="${id}"></button>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600">${c.name} <span class="box-badge">${entry.boxes}</span></div>
+          <div style="font-size:11px;color:#999">${c.area?c.area+' · ':''}Delivery ${cp+1}/${DC}${cp+1===DC?' · <span style="color:#e65100;font-weight:600">💰 Payment due</span>':''}</div>
+        </div>
+      </div>`;
+    });
+  }
+  
+  // Done
+  if(done.length>0){
+    h+=`<div class="section-label" style="color:#2e7d32">Delivered ✓ (${done.length})</div>`;
+    done.forEach(([id,entry])=>{
+      const c=S.customers.find(x=>x.id===id);if(!c)return;
+      h+=`<div class="card" style="display:flex;align-items:center;gap:12px;opacity:.5">
+        <button class="check-btn checked" data-deliver="${id}">✓</button>
+        <div style="flex:1"><div style="font-size:15px;font-weight:600;text-decoration:line-through">${c.name} <span class="box-badge">${entry.boxes}</span></div></div>
+      </div>`;
+    });
+  }
+  return h;
+}
+
+// ─── CUSTOMERS TAB ───
+function rCust(){
+  const active=S.customers.filter(c=>c.active),inactive=S.customers.filter(c=>!c.active);
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><h2 class="tab-title">Customers (${S.customers.length})</h2><button class="btn-primary btn-sm" id="addCBtn">+ Add</button></div>`;
+  active.forEach(c=>{
+    h+=`<div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:15px;font-weight:600">${c.name} <span style="font-size:12px;font-weight:400;color:#888">(${c.defaultBoxes||1} box${(c.defaultBoxes||1)>1?'es':''})</span></div>
+        <div style="display:flex;gap:4px">
+          <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px" data-edit="${c.id}">✏️</button>
+          <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px" data-pause="${c.id}">⏸️</button>
+          <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px" data-del="${c.id}">🗑️</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#888;display:flex;gap:12px">
+        ${c.phone?`<span>📱 ${c.phone}</span>`:''}${c.area?`<span>📍 ${c.area}</span>`:''}
+        <span>${c.deliveriesInCycle}/${DC} in cycle · ${c.totalDeliveries} total</span>
+      </div>
+    </div>`;
+  });
+  if(inactive.length>0){
+    h+=`<div class="section-label">Paused (${inactive.length})</div>`;
+    inactive.forEach(c=>{h+=`<div class="card" style="opacity:.5"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:15px;font-weight:600">${c.name}</div><div style="display:flex;gap:4px"><button style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px" data-resume="${c.id}">▶️</button><button style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px" data-del="${c.id}">🗑️</button></div></div></div>`});
+  }
+  return h;
+}
+
+// ─── PAYMENTS TAB ───
+function rPay(){
+  const a=ac();
+  const tc=S.customers.reduce((s,c)=>s+(c.payments||[]).reduce((a,p)=>a+p.amount,0),0);
+  const np=a.filter(c=>c.deliveriesInCycle===0&&c.totalDeliveries>0);
+  const near=a.filter(c=>c.deliveriesInCycle===DC-1);
+  
+  let h=`<h2 class="tab-title">Payments</h2>
+    <div class="card" style="text-align:center">
+      <div style="font-size:32px;font-weight:700;color:#2d5016;font-family:'DM Serif Display',serif">₹${tc.toLocaleString("en-IN")}</div>
+      <div style="font-size:13px;color:#888">Total collected</div>
+    </div>`;
+  
+  if(np.length>0){
+    h+=`<div class="section-label" style="color:#e65100">Payment Due (${np.length})</div>`;
+    np.forEach(c=>{
+      const amt=(c.defaultBoxes||1)*BASE_PRICE;
+      h+=`<div class="card" style="border-left:3px solid #e65100"><div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:15px;font-weight:600">${c.name}</div><div style="font-size:12px;color:#888">${c.defaultBoxes||1} box${(c.defaultBoxes||1)>1?'es':''} × ₹${BASE_PRICE} = ₹${amt}</div></div><button class="btn-primary btn-sm" data-pay="${c.id}">₹${amt} Paid</button></div></div>`;
+    });
+  }
+  if(near.length>0){
+    h+=`<div class="section-label" style="color:#f57c00">Coming Up (${near.length})</div>`;
+    near.forEach(c=>{h+=`<div class="card" style="border-left:3px solid #ffe082"><div style="font-size:15px;font-weight:600">${c.name}</div><div style="font-size:12px;color:#888">${c.deliveriesInCycle}/${DC} — next delivery completes cycle</div></div>`});
+  }
+  h+=`<div class="section-label">All Customers</div>`;
+  a.forEach(c=>{
+    const tp=(c.payments||[]).reduce((s,p)=>s+p.amount,0);const lp=(c.payments||[]).slice(-1)[0];
+    h+=`<div class="card" style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:14px;font-weight:600">${c.name}</div><div style="font-size:11px;color:#888">${c.defaultBoxes||1} box${(c.defaultBoxes||1)>1?'es':''} · ${c.deliveriesInCycle}/${DC} in cycle · ${c.totalDeliveries} total</div>${lp?`<div style="font-size:11px;color:#aaa">Last: ${fd(lp.date)} · ₹${lp.amount}</div>`:''}</div><div style="text-align:right"><div style="font-size:15px;font-weight:700;color:#2d5016">₹${tp.toLocaleString("en-IN")}</div><div style="font-size:10px;color:#aaa">total</div></div></div>`;
+  });
+  return h;
+}
+
+// ─── HISTORY TAB ───
+function rHist(){
+  let h=`<h2 class="tab-title">Delivery History</h2>`;
+  if(S.history.length===0)return h+`<div class="empty-state"><div class="icon">📋</div><div>No deliveries yet</div></div>`;
+  S.history.forEach(e=>{
+    const bc=e.boxCounts||{};
+    const dt=e.delivered.map(id=>{const b=bc[id]||1;return`<span style="padding:3px 10px;border-radius:10px;font-size:11px;background:#e8f5e9;color:#2e7d32;font-weight:500">✓ ${e.customerNames[id]||'?'}${b>1?' ('+b+')':''}</span>`}).join("");
+    const st=e.skipped.map(id=>`<span style="padding:3px 10px;border-radius:10px;font-size:11px;background:#fff3e0;color:#e65100;font-weight:500">✈ ${e.customerNames[id]||'?'}</span>`).join("");
+    const totalB=e.delivered.reduce((s,id)=>s+(bc[id]||1),0);
+    h+=`<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div style="font-size:14px;font-weight:600">${fd(e.date)}</div><div style="font-size:12px;color:#888">${e.delivered.length} delivered · ${totalB} boxes</div></div><div style="display:flex;flex-wrap:wrap;gap:4px">${dt}${st}</div>${e.cycleCompleted&&e.cycleCompleted.length>0?`<div style="margin-top:8px;font-size:11px;color:#e65100;font-weight:500">💰 Cycle: ${e.cycleCompleted.map(id=>e.customerNames[id]||'?').join(', ')}</div>`:''}</div>`;
+  });
+  return h;
+}
+
+// ═══════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════
+function showCustForm(cust){
+  const isE=!!cust,nm=cust?.name||"",ph=cust?.phone||"",ar=cust?.area||"",db=cust?.defaultBoxes||1;
+  document.getElementById("modalContainer").innerHTML=`<div class="modal-overlay" id="mOverlay"><div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-title">${isE?'Edit':'Add'} Customer</div>
+    <div style="margin-bottom:12px"><label class="input-label">Name *</label><input class="input-field" id="fN" value="${nm}" placeholder="Customer name"></div>
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <div style="flex:1"><label class="input-label">Phone</label><input class="input-field" id="fP" value="${ph}" placeholder="Phone"></div>
+      <div style="flex:1"><label class="input-label">Area</label><input class="input-field" id="fA" value="${ar}" placeholder="Area"></div>
+    </div>
+    <div style="margin-bottom:16px"><label class="input-label">Default boxes per week</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
+        <div class="stepper" id="boxStepper">
+          <button id="boxMinus">−</button>
+          <div class="count" id="boxCount">${db}</div>
+          <button id="boxPlus">+</button>
+        </div>
+        <span style="font-size:13px;color:#888">= ₹${db*BASE_PRICE} per cycle</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" style="flex:1" id="fCancel">Cancel</button>
+      <button class="btn-primary" style="flex:1" id="fSave" data-cid="${cust?.id||''}">${isE?'Save':'Add'}</button>
+    </div>
+  </div></div>`;
+  
+  let currentBoxes=db;
+  const updateBoxDisplay=()=>{
+    document.getElementById("boxCount").textContent=currentBoxes;
+    document.querySelector("#boxStepper + span").textContent=`= ₹${currentBoxes*BASE_PRICE} per cycle`;
+  };
+  document.getElementById("boxMinus").addEventListener("click",()=>{if(currentBoxes>1){currentBoxes--;updateBoxDisplay()}});
+  document.getElementById("boxPlus").addEventListener("click",()=>{if(currentBoxes<10){currentBoxes++;updateBoxDisplay()}});
+  document.getElementById("fCancel").addEventListener("click",closeModal);
+  document.getElementById("mOverlay").addEventListener("click",closeModal);
+  document.getElementById("fSave").addEventListener("click",async()=>{
+    const n=document.getElementById("fN").value.trim();if(!n)return;
+    const p=document.getElementById("fP").value.trim(),a=document.getElementById("fA").value.trim();
+    closeModal();
+    if(cust?.id){await editCust({id:cust.id,name:n,phone:p,area:a,defaultBoxes:currentBoxes})}
+    else{await addCust({name:n,phone:p,area:a,defaultBoxes:currentBoxes})}
+  });
+}
+
+function showConfirm(title,msg,onOk,okLabel="Confirm",danger=false){
+  document.getElementById("modalContainer").innerHTML=`<div class="modal-overlay" id="mOverlay"><div class="modal-content" onclick="event.stopPropagation()"><div class="modal-title">${title}</div><p style="font-size:14px;color:#666;margin:0 0 16px">${msg}</p><div style="display:flex;gap:8px"><button class="btn-secondary" style="flex:1" id="cCancel">Cancel</button><button class="btn-primary" style="flex:1;${danger?'background:#c62828':''}" id="cOk">${okLabel}</button></div></div></div>`;
+  document.getElementById("cCancel").addEventListener("click",closeModal);
+  document.getElementById("mOverlay").addEventListener("click",closeModal);
+  document.getElementById("cOk").addEventListener("click",()=>onOk());
+}
+function closeModal(){document.getElementById("modalContainer").innerHTML=""}
+
+// ═══════════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════════
+function bindEvents(){
+  document.querySelectorAll(".nav-btn").forEach(b=>b.addEventListener("click",()=>{S.tab=b.dataset.tab;render()}));
+  const wd=document.getElementById("weekDate");if(wd)wd.addEventListener("change",e=>updDate(e.target.value));
+  
+  // Harvest steppers
+  document.querySelectorAll("[data-hplus]").forEach(b=>b.addEventListener("click",()=>{
+    const id=b.dataset.hplus;const c=S.customers.find(x=>x.id===id);
+    const cur=S.ws.harvestQueue[id]||0;
+    setHarvestBoxes(id,cur+1);
+  }));
+  document.querySelectorAll("[data-hminus]").forEach(b=>b.addEventListener("click",()=>{
+    const id=b.dataset.hminus;const cur=S.ws.harvestQueue[id]||0;
+    if(cur>0)setHarvestBoxes(id,cur-1);
+  }));
+  
+  // Queue/unqueue
+  document.querySelectorAll("[data-queue]").forEach(b=>b.addEventListener("click",()=>queueForDelivery(b.dataset.queue)));
+  document.querySelectorAll("[data-unqueue]").forEach(b=>b.addEventListener("click",()=>unqueueDelivery(b.dataset.unqueue)));
+  
+  // Fill defaults
+  const fb=document.getElementById("fillDefaultsBtn");
+  if(fb)fb.addEventListener("click",async()=>{
+    const a=ac();const inDel=Object.keys(S.ws.deliveryQueue);
+    a.filter(c=>!inDel.includes(c.id)&&!S.ws.harvestQueue[c.id]).forEach(c=>{
+      S.ws.harvestQueue[c.id]=c.defaultBoxes||1;
+    });
+    render();await api("updateWeekState",{data:S.ws});
+  });
+  
+  // Deliveries
+  document.querySelectorAll("[data-deliver]").forEach(b=>b.addEventListener("click",()=>togDelivered(b.dataset.deliver)));
+  
+  // Complete week
+  const cw=document.getElementById("cwBtn");
+  if(cw)cw.addEventListener("click",()=>{
+    const dq=S.ws.deliveryQueue;
+    const delivered=Object.entries(dq).filter(([,v])=>v.delivered);
+    const pending=Object.entries(dq).filter(([,v])=>!v.delivered);
+    let msg=`${delivered.length} deliveries will be recorded.`;
+    if(pending.length>0)msg+=` ${pending.length} undelivered will be skipped.`;
+    const cycleNames=S.customers.filter(c=>dq[c.id]?.delivered&&(c.deliveriesInCycle+1)>=DC).map(c=>c.name);
+    if(cycleNames.length>0)msg+=`<br><br><div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px;font-size:13px">⚡ Cycle completing: <strong>${cycleNames.join(", ")}</strong></div>`;
+    showConfirm("Complete Week?",msg,doComplete,"Confirm");
+  });
+  
+  // Customers
+  const ab=document.getElementById("addCBtn");if(ab)ab.addEventListener("click",()=>showCustForm(null));
+  document.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>{const c=S.customers.find(x=>x.id===b.dataset.edit);if(c)showCustForm(c)}));
+  document.querySelectorAll("[data-pause]").forEach(b=>b.addEventListener("click",()=>togActive(b.dataset.pause)));
+  document.querySelectorAll("[data-resume]").forEach(b=>b.addEventListener("click",()=>togActive(b.dataset.resume)));
+  document.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{const c=S.customers.find(x=>x.id===b.dataset.del);showConfirm("Delete?",`Remove <strong>${c?.name}</strong>?`,async()=>{closeModal();await delCust(b.dataset.del)},"Delete",true)}));
+  document.querySelectorAll("[data-pay]").forEach(b=>b.addEventListener("click",()=>recPay(b.dataset.pay)));
+}
+
+// ═══════════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════════
+function showSetup(){
+  document.getElementById("app").innerHTML=`<div class="setup-screen"><div style="font-size:48px;margin-bottom:16px">🌱</div><h2>Microgreens Tracker</h2><p>Paste your Google Apps Script web app URL below.</p><input class="setup-input" id="apiIn" placeholder="https://script.google.com/macros/s/..." value="${API_URL}"><button class="btn-primary" style="width:100%;max-width:400px;padding:14px" id="connectBtn">Connect</button>${API_URL?'<button class="btn-secondary" style="width:100%;max-width:400px;padding:12px;margin-top:8px" id="backBtn">Back to App</button>':''}<p style="margin-top:20px;font-size:12px;color:#aaa;max-width:360px">Create a Google Sheet → Extensions → Apps Script → paste backend code → Deploy as Web App → paste URL here</p></div>`;
+  document.getElementById("connectBtn").addEventListener("click",async()=>{const u=document.getElementById("apiIn").value.trim();if(!u)return;API_URL=u;localStorage.setItem("mg-api-url",u);document.getElementById("app").innerHTML=`<div class="loading-screen"><div class="loading-spinner">🌱</div><div style="color:#2d5016">Connecting...</div></div>`;try{await loadAll();toast("Connected! ✅")}catch(e){showSetup();toast("Failed. Check URL.",true)}});
+  const bb=document.getElementById("backBtn");if(bb)bb.addEventListener("click",()=>render());
+}
+
+// INIT
+(async function(){if(!API_URL){showSetup();return}document.getElementById("app").innerHTML=`<div class="loading-screen"><div class="loading-spinner">🌱</div><div style="color:#2d5016">Loading...</div></div>`;try{await loadAll()}catch(e){showSetup()}})();
+</script>
+</body>
+</html>
